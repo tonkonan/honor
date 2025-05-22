@@ -11,6 +11,9 @@ export interface User {
   email: string;
   password: string;
   fullName: string;
+  phone: string | null;
+  district: string | null;
+  address: string | null;
   role: UserRole;
   avatarUrl: string | null;
   isVerified: boolean;
@@ -23,6 +26,9 @@ export interface RegisterUserInput {
   email: string;
   password: string;
   fullName: string;
+  phone?: string | null;
+  district?: string | null;
+  address?: string | null;
   role?: UserRole;
 }
 

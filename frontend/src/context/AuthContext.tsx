@@ -1,15 +1,19 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import axios from 'axios';
 
-interface User {
+// API URL
+const API_URL = 'http://localhost:3000/api';
+
+// Типы данных
+export interface User {
   id: string;
   fullName: string;
   email: string;
-  phone: string;
-  district: string;
-  verified: boolean;
-  isRepresentative: boolean;
+  phone?: string;
+  district?: string;
+  verified?: boolean;
+  isRepresentative?: boolean;
 }
 
 interface AuthContextType {
@@ -28,48 +32,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Настраиваем перехватчик запросов для добавления токена
+  useEffect(() => {
+    // Получаем токен из localStorage
+    const token = localStorage.getItem('honorToken');
+    
+    if (token) {
+      // Устанавливаем заголовок Authorization для всех запросов
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Очищаем при размонтировании
+    return () => {
+      delete axios.defaults.headers.common['Authorization'];
+    };
+  }, []);
+
   // Check for stored user data on component mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('honorUser');
-    if (storedUser) {
+    const loadUser = async () => {
       try {
-        setUser(JSON.parse(storedUser));
+        setLoading(true);
+        const storedUser = localStorage.getItem('honorUser');
+        const token = localStorage.getItem('honorToken');
+        
+        if (storedUser && token) {
+          // Устанавливаем заголовок авторизации
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          try {
+            // Можно сделать запрос на /api/auth/me для проверки валидности токена
+            // и получения актуальных данных пользователя
+            // const response = await axios.get(`${API_URL}/auth/me`);
+            // setUser(response.data);
+            
+            // Пока просто используем данные из localStorage
+            setUser(JSON.parse(storedUser));
+          } catch (e) {
+            // Если токен невалидный или истек, удаляем данные пользователя
+            localStorage.removeItem('honorUser');
+            localStorage.removeItem('honorToken');
+            delete axios.defaults.headers.common['Authorization'];
+          }
+        }
       } catch (e) {
         localStorage.removeItem('honorUser');
+        localStorage.removeItem('honorToken');
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    loadUser();
   }, []);
 
   const login = async (email: string, password: string) => {
-    // This would be a real API call in a production app
     setLoading(true);
     try {
-      // Mock login
-      const mockUser: User = {
-        id: '1',
-        fullName: 'Иван Иванов',
+      // Выполняем реальный запрос к API
+      const response = await axios.post(`${API_URL}/auth/login`, {
         email,
-        phone: '+7 (999) 999-99-99',
-        district: 'Округ №3',
-        verified: false,
-        isRepresentative: false,
-      };
+        password
+      });
       
-      setUser(mockUser);
-      localStorage.setItem('honorUser', JSON.stringify(mockUser));
+      // Сохраняем данные пользователя и токен
+      setUser(response.data.user);
+      localStorage.setItem('honorUser', JSON.stringify(response.data.user));
+      localStorage.setItem('honorToken', response.data.token);
+      
+      // Устанавливаем заголовок авторизации для всех последующих запросов
+      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
       
       toast({
         title: "Вход выполнен!",
         description: "Вы успешно вошли в систему.",
         variant: "default",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Ошибка входа",
-        description: "Неверный email или пароль.",
+        description: error.response?.data?.error || "Неверный email или пароль.",
         variant: "destructive",
       });
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -86,6 +131,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     localStorage.removeItem('honorUser');
+    localStorage.removeItem('honorToken');
+    delete axios.defaults.headers.common['Authorization'];
+    
     toast({
       title: "Выход выполнен",
       description: "Вы вышли из системы.",
@@ -104,6 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// Hook for using the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

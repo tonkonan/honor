@@ -1,45 +1,66 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User, SafeUser } from '../types/user';
+import { User } from '../types/user';
 
-// Количество раундов для хеширования пароля
-const SALT_ROUNDS = 10;
+// Получение секретного ключа из переменных окружения
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 
 // Хеширование пароля
 export const hashPassword = async (password: string): Promise<string> => {
-  const salt = await bcrypt.genSalt(SALT_ROUNDS);
-  return bcrypt.hash(password, salt);
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(password, salt);
 };
 
-// Проверка пароля
+// Сравнение паролей
 export const comparePasswords = async (
-  plainPassword: string,
+  password: string,
   hashedPassword: string
 ): Promise<boolean> => {
-  return bcrypt.compare(plainPassword, hashedPassword);
+  return await bcrypt.compare(password, hashedPassword);
 };
 
-// Создание JWT токена
+// Генерация JWT токена
 export const generateToken = (userId: string): string => {
-  const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
-  const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
-
-  // @ts-ignore - Игнорируем проблему с типами
-  return jwt.sign({ userId }, secretKey, { expiresIn });
+  // @ts-ignore - Обходим проблему с типами, которая возникает из-за несоответствия типов
+  return jwt.sign({ userId }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
 };
 
-// Верификация JWT токена
-export const verifyToken = (token: string): { userId: string } | null => {
+// Проверка JWT токена
+export const verifyToken = (token: string): any => {
   try {
-    const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
-    return jwt.verify(token, secretKey) as { userId: string };
+    // @ts-ignore - Обходим проблему с типами
+    return jwt.verify(token, JWT_SECRET);
   } catch (error) {
-    return null;
+    throw new Error('Недействительный токен');
   }
 };
 
-// Удаление пароля из объекта пользователя для безопасной передачи клиенту
-export const excludePassword = (user: User): SafeUser => {
-  const { password, ...safeUser } = user;
-  return safeUser;
+// Исключение пароля из объекта пользователя
+export const excludePassword = (user: User) => {
+  // Создаем копию объекта пользователя
+  const userWithoutPassword = { ...user };
+  // Удаляем пароль из копии
+  delete (userWithoutPassword as any).password;
+  // Возвращаем копию без пароля
+  return userWithoutPassword;
+};
+
+// Получение payload из токена
+export const getPayloadFromToken = (token: string): any => {
+  try {
+    // Удаляем Bearer из токена, если он есть
+    const cleanToken = token.startsWith('Bearer ') 
+      ? token.slice(7) 
+      : token;
+    
+    // Декодируем токен
+    // @ts-ignore - Обходим проблему с типами
+    const decoded = jwt.verify(cleanToken, JWT_SECRET);
+    return decoded;
+  } catch (error) {
+    throw new Error('Недействительный токен');
+  }
 }; 

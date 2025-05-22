@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
@@ -35,17 +34,8 @@ const Login = () => {
     
     try {
       await login(formData.email, formData.password);
-      toast({
-        title: "Вход выполнен успешно!",
-        description: "Добро пожаловать в систему «Честь»",
-      });
       navigate('/dashboard');
     } catch (error) {
-      toast({
-        title: "Ошибка входа",
-        description: "Неверный email или пароль. Пожалуйста, проверьте данные и попробуйте снова.",
-        variant: "destructive",
-      });
       console.error('Login failed:', error);
     } finally {
       setIsLoading(false);
@@ -57,7 +47,7 @@ const Login = () => {
       <div className="honor-container py-12">
         <div className="max-w-md mx-auto">
           <h1 className="text-3xl font-bold mb-8 text-center">Вход в систему</h1>
-
+          
           <div className="flex flex-col gap-3 mb-6">
             <GosuslugiAuthButton />
             <SberAuthButton />
@@ -69,28 +59,30 @@ const Login = () => {
             <span className="px-4 text-sm text-honor-darkGray">или</span>
             <Separator className="flex-grow" />
           </div>
-
+          
           <form onSubmit={handleSubmit} className="honor-card">
             <div className="mb-6">
-              <Label htmlFor="email" className="block mb-2">Электронная почта или телефон</Label>
+              <Label htmlFor="email" className="block mb-2">Электронная почта</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-honor-darkGray" size={18} />
                 <Input
                   id="email"
                   name="email"
+                  type="email"
                   value={formData.email}
                   onChange={handleChange}
                   className="honor-input pl-10"
                   placeholder="example@mail.ru"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
-
+            
             <div className="mb-6">
               <div className="flex justify-between mb-2">
                 <Label htmlFor="password">Пароль</Label>
-                <Link to="/forgot-password" className="text-sm text-honor-blue hover:underline">
+                <Link to="/forgot-password" className="text-xs text-honor-blue hover:underline">
                   Забыли пароль?
                 </Link>
               </div>
@@ -105,33 +97,35 @@ const Login = () => {
                   className="honor-input pl-10"
                   placeholder="••••••••"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
-
+            
             <Button 
               type="submit" 
-              className="w-full honor-button-primary"
+              className="w-full honor-button-primary mb-4"
               disabled={isLoading}
             >
-              {isLoading ? 'Выполняется вход...' : 'Войти'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Выполняется вход...
+                </>
+              ) : (
+                'Войти'
+              )}
             </Button>
+            
+            <div className="text-center">
+              <span className="text-sm text-honor-darkGray">
+                Нет аккаунта?{' '}
+                <Link to="/register" className="text-honor-blue hover:underline">
+                  Зарегистрироваться
+                </Link>
+              </span>
+            </div>
           </form>
-
-          <div className="mt-8 text-center">
-            <p className="text-honor-darkGray">
-              Еще не зарегистрированы?{' '}
-              <Link to="/register" className="text-honor-blue hover:underline">
-                Регистрация
-              </Link>
-            </p>
-          </div>
-
-          <div className="mt-6 text-center">
-            <GosuslugiAuthButton isRepresentative={true} className="max-w-xs mx-auto mb-2" />
-            <SberAuthButton isRepresentative={true} className="max-w-xs mx-auto mb-2" />
-            <TinkoffAuthButton isRepresentative={true} className="max-w-xs mx-auto" />
-          </div>
         </div>
       </div>
     </Layout>

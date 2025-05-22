@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { User, MapPin, Plus, LogIn, Bell, Ticket } from 'lucide-react';
+import { User, MapPin, Plus, LogIn, Bell, Ticket, LogOut } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -11,8 +10,18 @@ import {
   DialogDescription,
   DialogTrigger 
 } from '@/components/ui/dialog';
+import { useAuth } from '@/context/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
+  // Получаем данные о пользователе из контекста
+  const { user, logout } = useAuth();
+  
   // Mock ticket count - in a real app, this would come from user state
   const ticketCount = 35;
 
@@ -41,25 +50,19 @@ const Header = () => {
             </Link>
           </nav>
 
-          <div className="flex items-center space-x-4">
-            {/* Ticket indicator */}
-            <Link to="/balance" className="flex items-center px-3 py-1 rounded-full bg-honor-gray hover:bg-honor-blue/10 transition-colors">
-              <Ticket size={16} className="text-honor-blue mr-1" />
-              <span className="text-sm font-medium">{ticketCount}</span>
-            </Link>
-
+          <div className="flex items-center space-x-3">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell size={20} />
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-                </Button>
+                <button className="relative p-2 text-honor-text hover:text-honor-blue transition-colors">
+                  <Bell size={24} />
+                  <span className="absolute top-0 right-0 bg-honor-blue text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">2</span>
+                </button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Подписки и уведомления</DialogTitle>
+                  <DialogTitle>Уведомления</DialogTitle>
                   <DialogDescription>
-                    Управляйте подписками и просматривайте последние уведомления
+                    Здесь отображаются уведомления и события, связанные с вашими подписками
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
@@ -93,12 +96,40 @@ const Header = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            <Link to="/login">
-              <Button className="honor-button-primary flex items-center space-x-1">
-                <LogIn size={18} />
-                <span>Логин</span>
-              </Button>
-            </Link>
+            
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="honor-button-secondary flex items-center space-x-2">
+                    <User size={18} />
+                    <span className="max-w-[150px] truncate">{user.fullName}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="w-full cursor-pointer">
+                      Личный кабинет
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="w-full cursor-pointer">
+                      Профиль
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout} className="text-red-500 cursor-pointer">
+                    <LogOut size={16} className="mr-2" />
+                    Выйти
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/login">
+                <Button className="honor-button-primary flex items-center space-x-1">
+                  <LogIn size={18} />
+                  <span>Логин</span>
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

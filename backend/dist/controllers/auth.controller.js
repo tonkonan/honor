@@ -18,17 +18,33 @@ class AuthController {
     // Регистрация пользователя
     register(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log('=== НАЧАЛО КОНТРОЛЛЕРА: РЕГИСТРАЦИЯ ===');
             try {
                 const { email, password, fullName, role } = req.body;
+                console.log('Данные для регистрации:', { email, fullName, role });
                 // Валидация входных данных
                 if (!email || !password || !fullName) {
+                    console.log('Ошибка валидации: отсутствуют обязательные поля');
                     return res.status(400).json({ error: 'Необходимо указать email, пароль и имя' });
                 }
-                // Регистрируем пользователя
-                const result = yield authService.register({ email, password, fullName, role });
-                return res.status(201).json(result);
+                try {
+                    // Регистрируем пользователя
+                    console.log('Перед вызовом authService.register');
+                    const result = yield authService.register({ email, password, fullName, role });
+                    console.log('После вызова authService.register. Результат получен успешно');
+                    console.log('Пользователь успешно зарегистрирован с ID:', result.user.id);
+                    console.log('=== КОНЕЦ КОНТРОЛЛЕРА: РЕГИСТРАЦИЯ - УСПЕХ ===');
+                    return res.status(201).json(result);
+                }
+                catch (serviceError) {
+                    console.error('Ошибка в сервисе регистрации:', serviceError.message);
+                    throw serviceError;
+                }
             }
             catch (error) {
+                console.error('=== КОНЕЦ КОНТРОЛЛЕРА: РЕГИСТРАЦИЯ - ОШИБКА ===');
+                console.error('Общая ошибка при регистрации:', error.message);
+                console.error('Стек вызовов:', error.stack);
                 return res.status(400).json({ error: error.message || 'Ошибка при регистрации' });
             }
         });
@@ -36,71 +52,108 @@ class AuthController {
     // Вход пользователя
     login(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log('=== НАЧАЛО КОНТРОЛЛЕРА: ВХОД ===');
             try {
                 const { email, password } = req.body;
+                console.log('Попытка входа для email:', email);
                 // Валидация входных данных
                 if (!email || !password) {
+                    console.log('Ошибка валидации: отсутствуют обязательные поля');
                     return res.status(400).json({ error: 'Необходимо указать email и пароль' });
                 }
-                // Выполняем вход
+                // Аутентифицируем пользователя
+                console.log('Перед вызовом authService.login');
                 const result = yield authService.login({ email, password });
+                console.log('После вызова authService.login. Результат получен успешно');
+                console.log('Успешный вход для пользователя с ID:', result.user.id);
+                console.log('=== КОНЕЦ КОНТРОЛЛЕРА: ВХОД - УСПЕХ ===');
                 return res.status(200).json(result);
             }
             catch (error) {
-                return res.status(401).json({ error: error.message || 'Ошибка авторизации' });
+                console.error('=== КОНЕЦ КОНТРОЛЛЕРА: ВХОД - ОШИБКА ===');
+                console.error('Ошибка при входе:', error.message);
+                console.error('Стек вызовов:', error.stack);
+                return res.status(401).json({ error: error.message || 'Неверный email или пароль' });
             }
         });
     }
     // Получение информации о текущем пользователе
     getCurrentUser(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log('=== НАЧАЛО КОНТРОЛЛЕРА: ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ ===');
             try {
-                // userId должен быть добавлен в req из middleware
                 const userId = req.userId;
+                console.log('ID текущего пользователя из запроса:', userId);
                 if (!userId) {
+                    console.log('Ошибка: отсутствует ID пользователя в запросе');
                     return res.status(401).json({ error: 'Не авторизован' });
                 }
+                // Получаем информацию о пользователе
+                console.log('Перед вызовом authService.getCurrentUser');
                 const user = yield authService.getCurrentUser(userId);
-                return res.status(200).json({ user });
+                console.log('После вызова authService.getCurrentUser. Информация получена успешно');
+                console.log('Возвращаем данные пользователя с ID:', user.id);
+                console.log('=== КОНЕЦ КОНТРОЛЛЕРА: ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ - УСПЕХ ===');
+                return res.status(200).json(user);
             }
             catch (error) {
-                return res.status(400).json({ error: error.message || 'Ошибка при получении пользователя' });
+                console.error('=== КОНЕЦ КОНТРОЛЛЕРА: ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ - ОШИБКА ===');
+                console.error('Ошибка при получении информации о пользователе:', error.message);
+                console.error('Стек вызовов:', error.stack);
+                return res.status(400).json({ error: error.message || 'Ошибка при получении информации о пользователе' });
             }
         });
     }
     // Запрос на восстановление пароля
     forgotPassword(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log('=== НАЧАЛО КОНТРОЛЛЕРА: ЗАПРОС НА ВОССТАНОВЛЕНИЕ ПАРОЛЯ ===');
             try {
                 const { email } = req.body;
+                console.log('Email для восстановления пароля:', email);
                 // Валидация входных данных
                 if (!email) {
+                    console.log('Ошибка валидации: отсутствует email');
                     return res.status(400).json({ error: 'Необходимо указать email' });
                 }
+                // Отправляем запрос на восстановление
+                console.log('Перед вызовом authService.forgotPassword');
                 const result = yield authService.forgotPassword({ email });
+                console.log('После вызова authService.forgotPassword. Запрос обработан успешно');
+                console.log('=== КОНЕЦ КОНТРОЛЛЕРА: ЗАПРОС НА ВОССТАНОВЛЕНИЕ ПАРОЛЯ - УСПЕХ ===');
                 return res.status(200).json(result);
             }
             catch (error) {
-                // Для безопасности не сообщаем о конкретной ошибке
-                return res.status(200).json({
-                    message: 'Если пользователь с таким email существует, инструкции по сбросу пароля будут отправлены'
-                });
+                console.error('=== КОНЕЦ КОНТРОЛЛЕРА: ЗАПРОС НА ВОССТАНОВЛЕНИЕ ПАРОЛЯ - ОШИБКА ===');
+                console.error('Ошибка при запросе на восстановление пароля:', error.message);
+                console.error('Стек вызовов:', error.stack);
+                return res.status(400).json({ error: error.message || 'Ошибка при отправке запроса на восстановление пароля' });
             }
         });
     }
     // Сброс пароля
     resetPassword(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log('=== НАЧАЛО КОНТРОЛЛЕРА: СБРОС ПАРОЛЯ ===');
             try {
                 const { token, newPassword } = req.body;
+                console.log('Запрос на сброс пароля с токеном длиной:', token ? token.length : 0);
                 // Валидация входных данных
                 if (!token || !newPassword) {
+                    console.log('Ошибка валидации: отсутствует токен или новый пароль');
                     return res.status(400).json({ error: 'Необходимо указать токен и новый пароль' });
                 }
+                // Сбрасываем пароль
+                console.log('Перед вызовом authService.resetPassword');
                 const result = yield authService.resetPassword({ token, newPassword });
+                console.log('После вызова authService.resetPassword. Пароль сброшен успешно');
+                console.log('=== КОНЕЦ КОНТРОЛЛЕРА: СБРОС ПАРОЛЯ - УСПЕХ ===');
                 return res.status(200).json(result);
             }
             catch (error) {
+                console.error('=== КОНЕЦ КОНТРОЛЛЕРА: СБРОС ПАРОЛЯ - ОШИБКА ===');
+                console.error('Ошибка при сбросе пароля:', error.message);
+                console.error('Стек вызовов:', error.stack);
                 return res.status(400).json({ error: error.message || 'Ошибка при сбросе пароля' });
             }
         });
