@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '@/context/AuthContext';
 
 // Определяем типы сообщений
 type SuccessViewProps = {
@@ -37,6 +38,7 @@ const SuccessView = ({ onContinue, fullName }: SuccessViewProps) => {
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -71,14 +73,12 @@ const Register = () => {
 
   const handleSubmitStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     // Проверяем, что код верификации правильный (00000)
     if (formData.verificationCode === '00000') {
       try {
         setLoading(true);
-        
         // Отправляем запрос на регистрацию на бэкенд
-        const response = await axios.post(`${API_URL}/auth/register`, {
+        await axios.post(`${API_URL}/auth/register`, {
           email: formData.email,
           password: formData.password,
           fullName: formData.fullName,
@@ -87,20 +87,32 @@ const Register = () => {
           address: formData.useAddress ? formData.address : '',
           role: 'CITIZEN'
         });
-        
-        // Сохраняем пользователя и токен в localStorage
-        localStorage.setItem('honorUser', JSON.stringify(response.data.user));
-        localStorage.setItem('honorToken', response.data.token);
-        
-        // Устанавливаем заголовок авторизации для последующих запросов
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-        
-        // Показываем успешное сообщение
-        setStep(3);
+        // После успешной регистрации сразу логиним пользователя
+        await login(formData.email, formData.password);
+        navigate('/dashboard');
       } catch (error: any) {
+        const errorMsg = error.response?.data?.error || "Произошла ошибка при регистрации";
+        // Если ошибка про существующего пользователя или 'запись не найдена после вставки' — пробуем залогинить
+        if (
+          errorMsg.includes('существует') ||
+          errorMsg.includes('запись не найдена после вставки')
+        ) {
+          try {
+            await login(formData.email, formData.password);
+            navigate('/dashboard');
+            return;
+          } catch {
+            toast({
+              title: "Ошибка регистрации",
+              description: errorMsg,
+              variant: "destructive",
+            });
+            return;
+          }
+        }
         toast({
           title: "Ошибка регистрации",
-          description: error.response?.data?.error || "Произошла ошибка при регистрации",
+          description: errorMsg,
           variant: "destructive",
         });
       } finally {

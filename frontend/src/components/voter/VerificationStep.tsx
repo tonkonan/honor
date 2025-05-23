@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -19,14 +19,6 @@ const VerificationStep = ({
   goBack,
   loading = false
 }: VerificationStepProps) => {
-  // Проверка на 00000 и автоматическая отправка формы
-  useEffect(() => {
-    if (verificationCode === '00000' && !loading) {
-      const event = new Event('submit', { cancelable: true, bubbles: true }) as unknown as React.FormEvent;
-      handleSubmit(event);
-    }
-  }, [verificationCode, handleSubmit, loading]);
-
   return (
     <form onSubmit={handleSubmit} className="honor-card">
       <div className="text-center mb-6">
